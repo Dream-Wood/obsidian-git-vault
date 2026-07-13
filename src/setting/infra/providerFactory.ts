@@ -1,5 +1,4 @@
 import { ApiSyncProvider } from "src/syncProvider/apiSyncProvider";
-import { GiteaApiSyncProvider } from "src/syncProvider/giteaApiSyncProvider";
 import { GitHubApiSyncProvider } from "src/syncProvider/githubApiSyncProvider";
 import { GitLabApiSyncProvider } from "src/syncProvider/gitlabApiSyncProvider";
 import type { ObsidianGitSettings } from "src/types";
@@ -45,7 +44,9 @@ export function buildActiveApiProvider(
         case "gitlab":
             return new GitLabApiSyncProvider(plugin as never);
         case "gitea":
-            return new GiteaApiSyncProvider(plugin as never);
+            // Forgejo now uses the Git transport and is built by SyncManager.
+            // This factory is intentionally limited to REST API providers.
+            return null;
         case "git":
             return null;
         default:

@@ -5,10 +5,11 @@ aliases:
 
 # Start Here
 
-Obsidian Git Vault can run in two broad modes:
+Obsidian Git Vault can run through three transport paths:
 
 - **Git Mode:** desktop-first, uses a local Git installation, and supports the full Git workflow.
-- **Gitless Mode:** mobile-friendly, uses GitHub/GitLab/Gitea APIs, and does not require native Git.
+- **Forgejo Git:** system Git on desktop, isolated isomorphic-git on mobile, and one atomic three-way transaction per sync.
+- **Gitless Mode:** uses GitHub/GitLab APIs and does not require native Git.
 
 Choose the path that matches your device and experience level.
 
@@ -17,6 +18,7 @@ Choose the path that matches your device and experience level.
 | If you are...                                 | Start with                                                                                                                  |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | New to Git or setting up a phone/tablet       | [Mobile Setup](Mobile-Setup.md) and [Simple Mode](Simple-Mode.md)                                                           |
+| Using a self-hosted Forgejo repository        | [Forgejo Sync](Forgejo-Sync.md), then [Authentication](Authentication.md)                                                  |
 | Using desktop without installing Git          | [Gitless Mode](Gitless-Mode.md)                                                                                             |
 | Using desktop with an existing Git repository | [Installation](Installation.md), then [Getting Started](Getting%20Started.md)                                               |
 | Sharing a vault across multiple devices       | [Smart Triggers](Smart-Triggers.md), [Conflict Resolution](Conflict-Resolution.md), and [Common issues](Common%20issues.md) |
@@ -35,6 +37,7 @@ Feature-specific guides:
 
 - [Simple Mode](Simple-Mode.md)
 - [Mobile Setup](Mobile-Setup.md)
+- [Forgejo Sync](Forgejo-Sync.md)
 - [Gitless Mode](Gitless-Mode.md)
 - [Smart Triggers](Smart-Triggers.md)
 - [Conflict Resolution](Conflict-Resolution.md)
@@ -42,7 +45,7 @@ Feature-specific guides:
 - [Integration with other tools](Integration%20with%20other%20tools.md)
 
 > [!info] Encrypted API sync
-> If you are using the GitHub/GitLab/Gitea API backends with **Encrypt synced file contents** enabled, read [Gitless Mode](Gitless-Mode.md#encryption-at-rest). Clone/import workflows require the exporting device to already know the passphrase for that remote.
+> If you are using the GitHub/GitLab API backends with **Encrypt synced file contents** enabled, read [Gitless Mode](Gitless-Mode.md#encryption-at-rest). Forgejo Git stores normal Git blobs and does not use API payload encryption.
 
 > [!warning] Linux package managers
 > Avoid Flatpak and Snap installations for Obsidian when using Git Mode. Those package formats can sandbox Obsidian away from your system Git installation. See [Installation - Linux](Installation.md#linux).

@@ -39,17 +39,17 @@ This document describes the internal architecture of Obsidian Git Vault for cont
 │         ┌────────────┴────────────┐                     │
 │         ▼                         ▼                     │
 │  ┌─────────────┐        ┌──────────────────┐            │
-│  │ GitSync     │        │ ApiSyncProvider  │            │
-│  │ Provider    │        │ + forge clients  │            │
+│  │ GitSync /   │        │ ApiSyncProvider  │            │
+│  │ Forgejo Git │        │ + forge clients  │            │
 │  │             │        │                  │            │
 │  │ simple-git  │        │ requestUrl +     │            │
 │  │ or iso-git  │        │ GitHub / GitLab  │            │
-│  └──────┬──────┘        │ / Gitea APIs     │            │
+│  └──────┬──────┘        │ APIs             │            │
 │                              └───────┬──────┘            │
 └─────────┼────────────────────────────┼───────────────────┘
           ▼                            ▼
     Git remote                 Forge REST APIs
-  (any Git host)      (GitHub / GitLab / Gitea / Forgejo)
+ (including Forgejo)             (GitHub / GitLab)
 ```
 
 ---
@@ -81,9 +81,9 @@ Adapts the existing `GitManager` abstraction (which wraps either `simple-git` or
 
 Key behaviour:
 
--   `sync()` enqueues a task on `plugin.promiseQueue` and resolves when `commitAndSync` completes
--   `resolveConflicts()` stages or discards files per resolution strategy
--   `getStatus()` delegates to `gitManager.status()`
+- `sync()` enqueues a task on `plugin.promiseQueue` and resolves when `commitAndSync` completes
+- `resolveConflicts()` stages or discards files per resolution strategy
+- `getStatus()` delegates to `gitManager.status()`
 
 ---
 
@@ -93,18 +93,29 @@ A shared REST API sync engine with no Git dependency.
 
 Key behaviour:
 
--   Uses `requestUrl` from the Obsidian API — works on mobile without native fetch restrictions
--   Applies tracked-directory scoping and exclude-path rules before building the local snapshot
--   Optionally encrypts file contents before upload and decrypts them after download
--   Provides per-file sync metadata and conflict-compatible content comparison across providers
+- Uses `requestUrl` from the Obsidian API — works on mobile without native fetch restrictions
+- Applies tracked-directory scoping and exclude-path rules before building the local snapshot
+- Optionally encrypts file contents before upload and decrypts them after download
+- Provides per-file sync metadata and conflict-compatible content comparison across providers
+
+### `src/syncProvider/forgejoGitSyncProvider.ts`
+
+Forgejo-specific Git transaction engine. Desktop uses the mandatory system Git executable; mobile uses isomorphic-git in an isolated config-directory worktree.
+
+- Performs exactly one fetch per sync transaction
+- Compares complete base, local, and remote snapshots with a real three-way merge
+- Creates at most one content commit and performs one push
+- Writes nothing when conflicts are found; resolved files publish as one atomic transaction
+- Restores vault files and local refs/index when a pre-push step or push fails
+- Hard-excludes `.obsidian`, `.git`, and `.cocoindex_code`
 
 ### `src/syncProvider/apiClient.ts`
 
 Forge-specific client adapters used by `ApiSyncProvider`.
 
--   `GitHubForgeClient` uses Git Database endpoints for atomic batch writes
--   `GitLabForgeClient` uses repository tree/files endpoints plus commit `actions[]`
--   `GiteaForgeClient` uses repository contents traversal and per-file writes
+- `GitHubForgeClient` uses Git Database endpoints for atomic batch writes
+- `GitLabForgeClient` uses repository tree/files endpoints plus commit `actions[]`
+- `GiteaForgeClient` remains available to settings UI helpers, but is not used by the Forgejo sync data path
 
 ---
 
@@ -135,10 +146,10 @@ Top-level coordinator. Owned by the `ObsidianGit` plugin instance (`plugin.syncM
 
 Responsibilities:
 
--   **Provider selection:** chooses `GitSyncProvider`, `GitHubApiSyncProvider`, `GitLabApiSyncProvider`, or `GiteaApiSyncProvider` based on `settings.activeSyncProvider` and `Platform.isMobileApp`
--   **Smart triggers:** registers and deregisters `EventRef`-based vault/workspace listeners and `setInterval`/`setTimeout`-based timers
--   **Queue routing:** all sync operations go through `plugin.promiseQueue`
--   **Conflict routing:** if `lastResult.conflicts.length > 0` and strategy is `manual`, opens `ConflictModal`; otherwise auto-resolves
+- **Provider selection:** chooses `GitSyncProvider`, `GitHubApiSyncProvider`, `GitLabApiSyncProvider`, or `ForgejoGitSyncProvider` based on `settings.activeSyncProvider` and platform
+- **Smart triggers:** registers and deregisters `EventRef`-based vault/workspace listeners and `setInterval`/`setTimeout`-based timers
+- **Queue routing:** all sync operations go through `plugin.promiseQueue`
+- **Conflict routing:** if `lastResult.conflicts.length > 0` and strategy is `manual`, opens `ConflictModal`; otherwise auto-resolves
 
 ---
 

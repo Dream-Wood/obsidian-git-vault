@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     getPausedAutomaticsResumeDelay,
     requiresLocalGitRepo,
+    shouldPollConfigDirectory,
     shouldUseNativeGit,
 } from "../../src/startup";
 
@@ -10,7 +11,16 @@ describe("requiresLocalGitRepo", () => {
         expect(requiresLocalGitRepo("git")).toBe(true);
         expect(requiresLocalGitRepo("github")).toBe(false);
         expect(requiresLocalGitRepo("gitlab")).toBe(false);
-        expect(requiresLocalGitRepo("gitea")).toBe(false);
+        expect(requiresLocalGitRepo("gitea")).toBe(true);
+    });
+});
+
+describe("shouldPollConfigDirectory", () => {
+    it("never turns Forgejo service-file changes into sync triggers", () => {
+        expect(shouldPollConfigDirectory("github")).toBe(true);
+        expect(shouldPollConfigDirectory("gitlab")).toBe(true);
+        expect(shouldPollConfigDirectory("git")).toBe(false);
+        expect(shouldPollConfigDirectory("gitea")).toBe(false);
     });
 });
 
@@ -19,7 +29,7 @@ describe("shouldUseNativeGit", () => {
         expect(shouldUseNativeGit("git", true)).toBe(true);
         expect(shouldUseNativeGit("github", true)).toBe(false);
         expect(shouldUseNativeGit("gitlab", true)).toBe(false);
-        expect(shouldUseNativeGit("gitea", true)).toBe(false);
+        expect(shouldUseNativeGit("gitea", true)).toBe(true);
         expect(shouldUseNativeGit("git", false)).toBe(false);
     });
 });

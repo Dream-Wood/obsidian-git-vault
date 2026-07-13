@@ -195,7 +195,7 @@ private buildProvider(): SyncProvider {
   }
 
   if (activeSyncProvider === "gitea") {
-    return new GiteaApiSyncProvider(this.plugin);
+    return new ForgejoGitSyncProvider(this.plugin);
   }
 
   return new GitSyncProvider(this.plugin);

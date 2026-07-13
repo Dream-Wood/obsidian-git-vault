@@ -8,7 +8,9 @@ aliases:
 Authentication is handled by Git or by the configured API provider, depending on the sync backend.
 
 - **Git Mode:** use HTTPS credentials or SSH keys through your system Git installation.
-- **Gitless/API Mode:** use a provider token in the plugin settings. See [Gitless Mode](Gitless-Mode.md) and [Mobile Setup](Mobile-Setup.md).
+- **Forgejo Git on desktop:** use the system Git credential helper; the configured Forgejo token is used for repository discovery, not injected into Git command lines.
+- **Forgejo Git on mobile:** isomorphic-git uses the configured Forgejo token over HTTPS.
+- **Gitless/API Mode:** use a GitHub/GitLab provider token. See [Gitless Mode](Gitless-Mode.md) and [Mobile Setup](Mobile-Setup.md).
 
 ## HTTPS Credentials
 
@@ -85,14 +87,16 @@ Desktop apps often do not have an attached terminal. When Git asks for a passphr
 
 Options:
 
-- Install `ksshaskpass` or another askpass helper and set `SSH_ASKPASS` in **Settings -> Obsidian Git Vault -> Advanced -> Additional environment variables**.
-- Use the plugin's integrated askpass fallback. If no external askpass program is configured, the plugin provides a modal prompt for username/password requests.
+- Install `ksshaskpass` or another askpass helper and configure it in the operating-system/session environment.
+- Prefer `ssh-agent` so automated sync does not need an interactive prompt.
 
-Example external askpass setting:
+Example external askpass environment setting:
 
 ```text
 SSH_ASKPASS=ksshaskpass
 ```
+
+The Dream-Wood edition does not ship an embedded askpass script.
 
 ## Troubleshooting
 

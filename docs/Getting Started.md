@@ -48,7 +48,7 @@ To clone, you have to use a remote URL. This can be one of two protocols: either
 
 ## Mobile
 
-Use [Mobile Setup](Mobile-Setup.md) for the current recommended mobile path. The plugin defaults mobile devices to Gitless Mode, which uses provider APIs instead of a native Git binary.
+Use [Mobile Setup](Mobile-Setup.md) for the current recommended mobile path. Forgejo uses an isolated isomorphic-git worktree; GitHub and GitLab use their repository APIs. None of these mobile paths requires a native Git binary.
 
 Native Git on mobile is not recommended. If you intentionally want an external Git client, alternatives include [GitSync](https://github.com/ViscousPot/GitSync) and [Working Copy](https://workingcopy.app/), but those apps are separate from this plugin.
 
@@ -94,7 +94,7 @@ The instructions assume you are using [GitHub](https://github.com), but can be e
 9. Don't touch any settings under "Advanced"
 10. Exit plugin settings, open command palette, choose "Git: Clone existing remote repo".
 11. Fill in repo URL in the text field and press the repo URL button below it. The repo URL is NOT the URL in the browser. You have to append `.git`. - `https://github.com/<username>/<repo>.git`
-    - E.g. `https://github.com/denolehov/obsidian-git.git`
+    - E.g. `https://github.com/example/my-vault.git`
 12. Follow instructions to determine the folder to place repo in and whether an `.obsidian` directory already exits.
 13. Clone should start. Popup notifications (if not disabled) will display the progress. Do not exit until a popup appears requesting that you "Restart Obsidian".
 

@@ -48,7 +48,7 @@ export interface ProviderDescriptor extends SyncProviderCapabilities {
 
     /**
      * Whether the provider needs a local git repository on disk.
-     * `true` only for the `"git"` provider.
+     * `true` for providers backed by a local Git repository.
      */
     readonly requiresLocalGitRepo: boolean;
 
@@ -169,23 +169,23 @@ const GITLAB_DESCRIPTOR: ProviderDescriptor = createProviderDescriptor({
 
 const GITEA_DESCRIPTOR: ProviderDescriptor = createProviderDescriptor({
     type: "gitea",
-    displayName: "Gitea / Forgejo API",
+    displayName: "Forgejo Git",
     availableOnMobile: true,
     availableOnDesktop: true,
     requiresPersonalAccessToken: true,
-    requiresLocalGitRepo: false,
+    requiresLocalGitRepo: true,
     isApiProvider: true,
-    supportsAtomicBatchWrites: false,
+    supportsAtomicBatchWrites: true,
     supportsRemoteCommitHistory: true,
     supportsPerFileMetadata: true,
-    supportsEncryptedSync: true,
+    supportsEncryptedSync: false,
     supportsExcludePaths: true,
     supportsTrackedDirectoryScoping: true,
-    supportsDedicatedVaultImport: true,
+    supportsDedicatedVaultImport: false,
     supportsDefaultBranchAutoDetection: true,
-    supportsLineAuthoring: false,
+    supportsLineAuthoring: true,
     remoteFileUrlMode: "supported",
-    bootstrapStrategy: "pull-first",
+    bootstrapStrategy: "clone",
 });
 
 // ─── Registry ─────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 {
     "name": "git-vault",
     "version": "1.0",
-    "description": "Hybrid Git + GitHub API sync for Obsidian with desktop power features and mobile-first reliability",
+    "description": "Atomic Obsidian sync with native Git, mobile isomorphic-git, and hosted provider integrations",
     "main": "main.js",
     "scripts": {
         "dev": "node esbuild.config.mjs dev",
@@ -17,9 +17,23 @@
         "test:coverage": "vitest run --coverage",
         "test:e2e": "playwright test"
     },
-    "keywords": [],
-    "author": "RedOracle",
+    "keywords": [
+        "obsidian",
+        "git",
+        "forgejo",
+        "gitea",
+        "sync"
+    ],
+    "author": "Dream-Wood",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Dream-Wood/obsidian-git-vault.git"
+    },
+    "bugs": {
+        "url": "https://github.com/Dream-Wood/obsidian-git-vault/issues"
+    },
+    "homepage": "https://github.com/Dream-Wood/obsidian-git-vault#readme",
     "standard-version": {
         "t": ""
     },

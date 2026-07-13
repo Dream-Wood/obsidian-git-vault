@@ -635,18 +635,24 @@ export default class ObsidianGit extends Plugin {
     }
 
     private registerVaultChangeHandlers(): void {
-        const handleVaultChange = () => {
+        const handleVaultChange = (file: TAbstractFile, oldPath?: string) => {
             if (this.areVaultChangeEffectsSuppressed()) {
                 return;
             }
             this.debRefresh();
-            if (this.settings.autoBackupAfterFileChange) {
+            if (
+                this.settings.activeSyncProvider === "git" &&
+                this.settings.autoBackupAfterFileChange
+            ) {
                 // Git automatics path (autoBackupAfterFileChange debouncer).
                 this.automaticsManager.handleFileChange();
             }
             if (this.settings.syncOnFileChange) {
                 // Provider-agnostic smart-sync path (syncOnFileChange debouncer).
-                this.syncManager.notifyFileChange();
+                this.syncManager.notifyFileChange(file.path);
+                if (oldPath && oldPath !== file.path) {
+                    this.syncManager.notifyFileChange(oldPath);
+                }
             }
         };
 
@@ -812,7 +818,9 @@ export default class ObsidianGit extends Plugin {
 
     get useSimpleGit(): boolean {
         return (
-            Platform.isDesktopApp && this.settings.activeSyncProvider === "git"
+            Platform.isDesktopApp &&
+            (this.settings.activeSyncProvider === "git" ||
+                this.settings.activeSyncProvider === "gitea")
         );
     }
 
@@ -982,6 +990,30 @@ export default class ObsidianGit extends Plugin {
                     );
                     break;
                 case "missing-repo":
+                    if (this.settings.activeSyncProvider === "gitea") {
+                        // Forgejo Git owns its local repository lifecycle. It
+                        // initializes an empty repo here and binds origin without
+                        // performing a network operation; the first sync does the
+                        // single fetch.
+                        await this.syncManager.init();
+                        this.gitReady = true;
+                        this._orchestrator.dispatch(
+                            fromReload
+                                ? {
+                                      type: "reload-finished",
+                                      gitAvailable: true,
+                                      isSimpleGit: this.useSimpleGit,
+                                  }
+                                : {
+                                      type: "boot-succeeded",
+                                      gitAvailable: true,
+                                      isSimpleGit: this.useSimpleGit,
+                                  }
+                        );
+                        await this.maybeShowVaultBootstrapOnboarding();
+                        await this.maybeConsumePendingVaultSyncRequest();
+                        break;
+                    }
                     if (!localGitRepoRequired) {
                         await this.syncManager
                             .init()
@@ -1014,8 +1046,11 @@ export default class ObsidianGit extends Plugin {
                     );
                     break;
                 case "valid":
-                    // Enable git-specific features only when git is the active provider.
-                    if (this.settings.activeSyncProvider === "git") {
+                    // Forgejo uses the same real local Git repository on desktop.
+                    if (
+                        this.settings.activeSyncProvider === "git" ||
+                        this.settings.activeSyncProvider === "gitea"
+                    ) {
                         this.gitReady = true;
                         // Inform the orchestrator that we are now ready.
                         this._orchestrator.dispatch(
@@ -1083,6 +1118,7 @@ export default class ObsidianGit extends Plugin {
                         this.app.workspace.trigger("obsidian-git:head-change");
 
                         if (
+                            this.settings.activeSyncProvider === "git" &&
                             !fromReload &&
                             this.settings.autoPullOnBoot &&
                             !pausedAutomatics
@@ -1097,7 +1133,10 @@ export default class ObsidianGit extends Plugin {
                             }, 0);
                         }
 
-                        if (!pausedAutomatics) {
+                        if (
+                            this.settings.activeSyncProvider === "git" &&
+                            !pausedAutomatics
+                        ) {
                             await this.automaticsManager.init();
                         }
 

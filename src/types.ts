@@ -92,7 +92,7 @@ export interface ObsidianGitSettings {
      *   git     – CLI Git / isomorphic-git (existing behaviour).
      *   github  – GitHub REST API.
      *   gitlab  – GitLab REST API.
-     *   gitea   – Gitea / Forgejo-style REST API.
+     *   gitea   – Forgejo Git protocol (native Git desktop, isomorphic-git mobile).
      */
     activeSyncProvider: SyncProviderSetting;
 
@@ -131,8 +131,8 @@ export interface ObsidianGitSettings {
     giteaBranch: string;
 
     /**
-     * Optional vault-relative folder to sync in API mode.
-     * Files inside this directory map to the repository root; files outside are ignored.
+     * Optional vault-relative folder to sync. Forgejo Git keeps the folder's
+     * repository-relative path and ignores files outside it.
      */
     trackedDirectory?: string;
     /**

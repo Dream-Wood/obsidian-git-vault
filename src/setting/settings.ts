@@ -397,7 +397,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         const settingsPlugin = this.plugin;
         const gitReady = concretePlugin.gitReady;
         const activeProvider = plugin.settings.activeSyncProvider;
-        const usingGitBackend = activeProvider === "git";
+        const usingGitBackend =
+            activeProvider === "git" || activeProvider === "gitea";
+        const usingHostedTargetSettings = activeProvider !== "git";
         const baseSettingsSectionContext =
             this.createBaseSettingsSectionContext();
 
@@ -456,14 +458,14 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         new Setting(containerEl)
             .setName("Sync backend")
             .setDesc(
-                "Git uses the local repository. The API backends sync directly against GitHub, GitLab, or Gitea/Forgejo without requiring Git on the device."
+                "Git uses the local repository. GitHub and GitLab use repository APIs. Forgejo uses system Git on desktop and isomorphic-git on mobile."
             )
             .addDropdown((dd) => {
                 dd.addOptions({
                     git: "Git",
                     github: "GitHub API",
                     gitlab: "GitLab API",
-                    gitea: "Gitea / Forgejo API",
+                    gitea: "Forgejo Git",
                 });
                 dd.setValue(plugin.settings.activeSyncProvider);
                 dd.onChange(async (v) => {
@@ -589,7 +591,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             renderGiteaProviderSection(giteaProviderContext);
         }
 
-        if (!usingGitBackend) {
+        if (usingHostedTargetSettings) {
             renderApiProviderSection({
                 containerEl,
                 plugin,

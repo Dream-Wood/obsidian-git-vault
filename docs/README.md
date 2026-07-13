@@ -16,6 +16,7 @@ Use this directory as the maintained documentation source for Obsidian Git Vault
 | Area                                   | Read                                                                  |
 | -------------------------------------- | --------------------------------------------------------------------- |
 | Simple one-button sync UI              | [Simple Mode](Simple-Mode.md)                                         |
+| Forgejo desktop/mobile sync            | [Forgejo Sync](Forgejo-Sync.md)                                       |
 | Mobile and API-backed sync             | [Mobile Setup](Mobile-Setup.md), [Gitless Mode](Gitless-Mode.md)      |
 | Automatic background sync              | [Smart Triggers](Smart-Triggers.md)                                   |
 | Conflict review and resolution         | [Conflict Resolution](Conflict-Resolution.md)                         |

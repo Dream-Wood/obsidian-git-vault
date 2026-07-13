@@ -72,6 +72,17 @@ export class IsomorphicGit extends GitManager {
             dir: this.plugin.settings.basePath,
             gitdir: this.plugin.settings.gitDir || undefined,
             onAuth: () => {
+                if (this.plugin.settings.activeSyncProvider === "gitea") {
+                    const token =
+                        this.plugin.providerSecrets.getToken("gitea") ?? "";
+                    if (token) {
+                        return {
+                            username:
+                                this.plugin.settings.giteaOwner || "git-vault",
+                            password: token,
+                        };
+                    }
+                }
                 const username =
                     this.plugin.providerSecrets.getGitHttpUsername() ??
                     this.plugin.localStorage.getUsername();

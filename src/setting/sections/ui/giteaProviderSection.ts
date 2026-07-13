@@ -169,10 +169,10 @@ export function renderGiteaProviderSection({
         }
     };
 
-    renderProviderSectionFrame(containerEl, "Gitea / Forgejo API", [
+    renderProviderSectionFrame(containerEl, "Forgejo Git", [
         {
             name: "Connection",
-            desc: "Configure the Gitea or Forgejo server this vault should use.",
+            desc: "Configure the Forgejo server. Sync uses native Git on desktop and isomorphic-git on mobile; the API token is also used for repository discovery.",
             render: (sectionContainerEl: HTMLElement) => {
                 new Setting(sectionContainerEl)
                     .setName("Server URL")

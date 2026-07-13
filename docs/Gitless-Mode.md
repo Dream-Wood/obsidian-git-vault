@@ -1,6 +1,6 @@
 # Gitless Mode
 
-Gitless Mode is a sync engine built into Obsidian Git Vault that communicates directly with the GitHub REST API — no Git installation, no terminal, no binary dependencies required.
+Gitless Mode communicates directly with GitHub/GitLab repository APIs — no Git installation, terminal, or binary dependency is required. Forgejo is not part of this engine in the Dream-Wood edition; see [Forgejo Sync](Forgejo-Sync.md).
 
 It is the default engine on mobile and a first-class option on desktop for users who prefer simplicity over Git's full feature set.
 
@@ -221,7 +221,7 @@ If step 2 is not true, Git Vault cannot decrypt encrypted remote files during ex
 
 ### What this protects against
 
-It protects the **data stored in the repository** from being read by someone who can access the remote Git host (e.g. repository viewers, a leaked token, or a compromised host). Currently only **GitHub** is supported as a Gitless sync target; GitLab and Gitea support is planned. It does **not** hide which files or folders exist — the remote tree structure remains plaintext so the API can navigate it.
+It protects the **data stored in the repository** from being read by someone who can access the API-backed remote Git host (e.g. repository viewers, a leaked token, or a compromised host). This API payload encryption is not supported by Forgejo Git. It does **not** hide which files or folders exist — the remote tree structure remains plaintext so the API can navigate it.
 
 ### How it differs from the per-file "Encrypt file" command
 

@@ -3,7 +3,7 @@ import type { SyncProviderSetting } from "./types";
 export function requiresLocalGitRepo(
     activeSyncProvider: SyncProviderSetting
 ): boolean {
-    return activeSyncProvider === "git";
+    return activeSyncProvider === "git" || activeSyncProvider === "gitea";
 }
 
 export function shouldUseNativeGit(
@@ -11,6 +11,12 @@ export function shouldUseNativeGit(
     isDesktopApp: boolean
 ): boolean {
     return isDesktopApp && requiresLocalGitRepo(activeSyncProvider);
+}
+
+export function shouldPollConfigDirectory(
+    activeSyncProvider: SyncProviderSetting
+): boolean {
+    return activeSyncProvider === "github" || activeSyncProvider === "gitlab";
 }
 
 export function getPausedAutomaticsResumeDelay(

@@ -1,22 +1,22 @@
 # Mobile Setup
 
-Obsidian Git Vault is built to work natively on iOS and Android without any CLI tools, terminals, or external dependencies.
+Obsidian Git Vault works on iOS and Android without a native Git binary or external terminal.
 
-When the plugin detects a mobile device it automatically selects:
+Choose one of two mobile paths:
 
--   **Sync Backend:** GitHub API
--   **UI Mode:** Simple
+- **Forgejo Git:** isolated isomorphic-git worktree, one fetch, real three-way merge, at most one commit and one push.
+- **GitHub/GitLab API:** repository API transport with API-specific features such as payload encryption.
 
-Both can be changed at any time in Settings.
+Simple UI mode is recommended for both.
 
 ---
 
 ## Prerequisites
 
--   Obsidian installed on your iOS or Android device
--   A GitHub account
--   A GitHub repository to use as your vault remote (private recommended)
--   A GitHub Personal Access Token with `repo` scope ([create one here](https://github.com/settings/tokens))
+- Obsidian installed on your iOS or Android device.
+- A repository on Forgejo, GitHub, or GitLab (private recommended).
+- A provider token with repository content read/write permission.
+- For Forgejo, the server URL, owner, repository, and target branch.
 
 ---
 
@@ -29,16 +29,28 @@ Both can be changed at any time in Settings.
 3. Search for **Obsidian Git Vault** and tap **Install**, then **Enable**
 
 > If the plugin is not yet in the community directory, install it manually:
-> Download the release from [GitHub Releases](https://github.com/redoracle/obsidian-git-vault/releases), copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/git-vault/` in your vault (via Files app, iSH, or another transfer method), then enable it in Settings.
+> Download the Dream-Wood edition from [GitHub Releases](https://github.com/Dream-Wood/obsidian-git-vault/releases), copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/git-vault/` in your vault (via Files app, iSH, or another transfer method), then enable it in Settings.
 
 ### 2. Configure the Plugin
 
-Go to **Settings → Obsidian Git Vault** and fill in:
+Go to **Settings → Obsidian Git Vault**, choose **Simple** UI mode, then configure one provider.
+
+For Forgejo:
+
+| Field | Value |
+| --- | --- |
+| Sync Backend | `Forgejo Git` |
+| Server URL | Base URL such as `https://git.example.com` |
+| Token | Forgejo token with repository read/write access |
+| Owner | User or organization owning the repository |
+| Repository | Repository name |
+| Branch | `main` or another selected branch |
+
+For GitHub API:
 
 | Field             | Value                                  |
 | ----------------- | -------------------------------------- |
 | Sync Backend      | `GitHub API` _(pre-selected)_          |
-| UI Mode           | `Simple` _(pre-selected)_              |
 | GitHub Token      | Your personal access token             |
 | GitHub Owner      | Your GitHub username or organisation   |
 | GitHub Repository | The repository name (not the full URL) |
@@ -48,7 +60,7 @@ Go to **Settings → Obsidian Git Vault** and fill in:
 
 Open the **Source Control** panel (tap the sidebar icon or use the command palette → "Open source control view") and tap **Sync**.
 
-On the first run the engine uploads your entire vault to the repository. This may take a minute for large vaults.
+On the first Forgejo run, local-only and remote-only paths are combined. Different contents at the same path are intentionally shown as conflicts because there is no common base yet. Review them rather than forcing an overwrite.
 
 ### 4. Enable Smart Triggers (Recommended)
 
@@ -62,12 +74,12 @@ Go to **Settings → Obsidian Git Vault → Smart sync triggers** and enable:
 
 ## Syncing Across Devices (Desktop + Mobile)
 
-1. Set up Git Mode on your desktop (see [Getting Started](Getting%20Started.md))
-2. Set up Gitless Mode on your mobile (this guide)
-3. Both devices push to the same GitHub repository
-4. Desktop commits appear as file changes; Gitless uploads appear as individual file commits
+1. Set up Git or Forgejo Git on desktop (see [Getting Started](Getting%20Started.md)).
+2. Select the same repository and branch on mobile.
+3. Sync before switching devices.
+4. Forgejo creates at most one content commit per mobile sync; GitHub/GitLab behavior follows their API provider.
 
-> Desktop (Git Mode) sees Gitless-pushed files as regular commits with the message `Sync: {filename}`. There is no conflict between the two engines as long as you sync on both sides before editing the same file.
+> Avoid editing the same note on two offline devices. Forgejo detects this with a real three-way conflict and leaves the vault unchanged until you resolve it.
 
 ---
 
@@ -75,19 +87,19 @@ Go to **Settings → Obsidian Git Vault → Smart sync triggers** and enable:
 
 ### "401 Unauthorized" or "403 Forbidden"
 
-Your GitHub token is invalid or has expired. Regenerate it at [github.com/settings/tokens](https://github.com/settings/tokens) and update it in Settings.
+The provider token is invalid, expired, or lacks repository content permission. Regenerate it in Forgejo/GitHub/GitLab and update it in Settings.
 
 ### "404 Not Found" for the repository
 
-Double-check the **GitHub Owner** and **GitHub Repository** fields. They are case-sensitive and must match your repository exactly.
+Double-check the server URL, owner, repository, and branch. They are case-sensitive and must match the remote exactly.
 
 ### Sync is very slow on first run
 
-The initial sync uploads every file in your vault. For large vaults (thousands of files) this is expected — subsequent syncs only upload changed files.
+The first fetch and snapshot comparison must inspect the repository once. Subsequent Forgejo syncs still use one fetch but push only when the merged content differs from remote.
 
 ### App crashes or runs out of memory
 
-If your vault is extremely large (> 10,000 files), you may experience performance issues. Use **Tracked directory** and **Excluded paths** in Obsidian Git Vault to reduce the API sync surface, or use Git Mode on desktop which respects the repository's native `.gitignore`.
+If your vault is extremely large (> 10,000 files), use **Tracked directory** and **Excluded paths** to reduce the snapshot. Forgejo's mobile repository is isolated under `.obsidian/.git-vault-mobile`.
 
 ### Conflict after editing on two devices simultaneously
 
@@ -99,8 +111,10 @@ See [Conflict-Resolution.md](Conflict-Resolution.md). Set **Conflict Resolution 
 
 | Limitation                          | Notes                                       |
 | ----------------------------------- | ------------------------------------------- |
-| No SSH authentication               | Gitless Mode uses HTTPS (token) only        |
-| No branching                        | Single configured branch only               |
+| No SSH authentication               | Mobile transports use HTTPS tokens          |
+| Branch changes are explicit         | Select and hydrate the configured branch    |
 | No commit history browser           | Use desktop Advanced Mode to review history |
 | No submodule support                | Desktop-only feature                        |
 | No editor signs / gutter indicators | Desktop-only feature                        |
+
+See [Forgejo Sync](Forgejo-Sync.md) for transaction, safety, authentication, and migration details.

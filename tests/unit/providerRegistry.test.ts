@@ -140,12 +140,14 @@ describe("ProviderRegistry", () => {
     describe("gitea descriptor", () => {
         const d = registry.describe("gitea");
         it("is an API provider", () => expect(d.isApiProvider).toBe(true));
-        it("supports encryption", () =>
-            expect(d.supportsEncryptedSync).toBe(true));
-        it("supports tracked scoping, remote URLs, dedicated import, and default-branch autodetect", () => {
+        it("uses atomic Git commits without API payload encryption", () => {
+            expect(d.supportsAtomicBatchWrites).toBe(true);
+            expect(d.supportsEncryptedSync).toBe(false);
+        });
+        it("supports tracked scoping, remote URLs, and default-branch autodetect", () => {
             expect(d.supportsTrackedDirectoryScoping).toBe(true);
             expect(d.supportsRemoteFileUrls).toBe(true);
-            expect(d.supportsDedicatedVaultImport).toBe(true);
+            expect(d.supportsDedicatedVaultImport).toBe(false);
             expect(d.supportsDefaultBranchAutoDetection).toBe(true);
             expect(d.remoteFileUrlMode).toBe("supported");
         });
@@ -191,11 +193,11 @@ describe("ProviderRegistry", () => {
     });
 
     describe("requiresLocalGitRepo()", () => {
-        it("returns true only for git", () => {
+        it("returns true for both local Git transports", () => {
             expect(registry.requiresLocalGitRepo("git")).toBe(true);
             expect(registry.requiresLocalGitRepo("github")).toBe(false);
             expect(registry.requiresLocalGitRepo("gitlab")).toBe(false);
-            expect(registry.requiresLocalGitRepo("gitea")).toBe(false);
+            expect(registry.requiresLocalGitRepo("gitea")).toBe(true);
         });
     });
 

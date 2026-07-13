@@ -5,23 +5,20 @@ aliases:
 
 # Installation
 
-Install both the Obsidian plugin and, when using Git Mode, a working Git binary that Obsidian can access.
+Install both the Obsidian plugin and, when using Git or Forgejo Git on desktop, a working Git binary that Obsidian can access.
 
 > [!important]
 > The plugin is cross-platform, but Git Mode depends on the host operating system exposing `git` to Obsidian. If Obsidian cannot see your Git installation, sync commands will fail even when Git works in your terminal.
 
 ## Plugin Installation
 
-### From Obsidian
+### Dream-Wood Edition
 
-1. Open **Settings -> Community plugins**.
-2. Select **Browse**.
-3. Search for **Obsidian Git Vault**.
-4. Install and enable the plugin.
+Download the [latest Dream-Wood release](https://github.com/Dream-Wood/obsidian-git-vault/releases/latest). The Community Plugins listing may contain the upstream edition and should not be assumed to include the Dream-Wood Forgejo engine.
 
 ### Manual Installation
 
-1. Download `git-vault-<latest-version>.zip` from the [latest release](https://github.com/redoracle/obsidian-git-vault/releases/latest).
+1. Download `git-vault-<latest-version>.zip` from the [latest release](https://github.com/Dream-Wood/obsidian-git-vault/releases/latest).
 2. Unpack the zip into `<vault>/.obsidian/plugins/git-vault`.
 3. Restart Obsidian.
 4. Open **Settings -> Community plugins** and disable restricted mode if needed.
@@ -38,7 +35,7 @@ Installing [GitHub Desktop](https://github.com/apps/desktop) is not enough. Git 
 
 ![Git for Windows third-party software option](assets/third-party-windows-git.png)
 
-Git Credential Manager is installed with current Git for Windows releases. Verify it from a terminal:
+Git Credential Manager is installed with current Git for Windows releases and is the recommended authentication path for desktop Forgejo Git. Verify it from a terminal:
 
 ```bash
 git config credential.helper

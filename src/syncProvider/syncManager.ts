@@ -6,12 +6,13 @@ import {
     type EventRef,
 } from "obsidian";
 import type ObsidianGit from "../main";
+import { shouldPollConfigDirectory } from "../startup";
 import { ConflictHistoryManager } from "./conflictHistory";
 import {
     compileExcludePatterns,
     isPathExcludedByCompiledPatterns,
 } from "./excludeMatcher";
-import { GiteaApiSyncProvider } from "./giteaApiSyncProvider";
+import { ForgejoGitSyncProvider } from "./forgejoGitSyncProvider";
 import { GitHubApiSyncProvider } from "./githubApiSyncProvider";
 import { GitLabApiSyncProvider } from "./gitlabApiSyncProvider";
 import { GitSyncProvider } from "./gitSyncProvider";
@@ -332,7 +333,7 @@ export class SyncManager {
     }
 
     private buildGiteaProvider(): SyncProvider {
-        return new GiteaApiSyncProvider(this.plugin);
+        return new ForgejoGitSyncProvider(this.plugin);
     }
 
     // ── Public API ────────────────────────────────────────────────────────
@@ -347,7 +348,10 @@ export class SyncManager {
      * from the same vault-change handler in main.ts, keeping each
      * manager self-contained.
      */
-    notifyFileChange(): void {
+    notifyFileChange(vaultPath?: string): void {
+        if (vaultPath && !this.shouldTrackPendingPath(vaultPath)) {
+            return;
+        }
         this.fileChangeDebouncer?.();
     }
 
@@ -1087,8 +1091,13 @@ export class SyncManager {
 
         // Config-dir (.obsidian) polling — vault events never fire for the
         // config directory, so we poll it periodically when syncOnFileChange
-        // is enabled and an API provider is active (git uses filesystem tracking).
-        if (s.syncOnFileChange && s.activeSyncProvider !== "git") {
+        // is enabled for a REST provider that actually includes config files.
+        // Forgejo Git hard-excludes .obsidian, so polling it would only create
+        // needless fetches from ordinary Obsidian UI activity.
+        if (
+            s.syncOnFileChange &&
+            shouldPollConfigDirectory(s.activeSyncProvider)
+        ) {
             // Increment the generation counter so any in-flight snapshot
             // callback from a previous registerSmartTriggers call (e.g. a
             // rapid reload()) can detect it is stale and abort before

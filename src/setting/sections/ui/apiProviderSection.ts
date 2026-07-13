@@ -1,6 +1,7 @@
 import { Setting } from "obsidian";
 import { normalizeTrackedDirectory } from "src/syncProvider/pathScope";
 import type ObsidianGit from "src/main";
+import { providerRegistry } from "src/syncProvider/providerRegistry";
 import { wireSecureFieldReveal } from "./secureFieldReveal";
 import { renderProviderSectionFrame } from "./providerSectionFrame";
 
@@ -26,15 +27,18 @@ export function renderApiProviderSection({
 }): void {
     let passphraseInputEl: HTMLInputElement | undefined;
 
+    const supportsEncryption = providerRegistry.describe(
+        plugin.settings.activeSyncProvider
+    ).supportsEncryptedSync;
     const sections = [
         {
-            name: "API sync scope",
+            name: "Sync scope",
             desc: "Limit which part of the vault is synced and which paths should stay local.",
             render: (sectionContainerEl: HTMLElement) => {
                 new Setting(sectionContainerEl)
                     .setName("Tracked directory")
                     .setDesc(
-                        "Optional vault-relative folder to sync in API mode. Its contents map to the remote repository root; everything outside stays local."
+                        "Optional vault-relative folder to sync. Everything outside stays local. Forgejo Git preserves this folder's repository-relative path."
                     )
                     .addText((t) => {
                         t.setValue(plugin.settings.trackedDirectory ?? "");
@@ -74,7 +78,7 @@ export function renderApiProviderSection({
                 new Setting(containerEl)
                     .setName("Excluded paths")
                     .setDesc(
-                        "One .gitignore-style rule per line. Rules are applied after tracked-directory scoping and only affect API backends."
+                        "One .gitignore-style rule per line. Rules are applied after tracked-directory scoping."
                     )
                     .addTextArea((ta) => {
                         ta.setValue(
@@ -106,174 +110,194 @@ export function renderApiProviderSection({
                     });
             },
         },
-        {
-            name: "Security",
-            desc: "Control encryption of API sync contents and the local passphrase used for decryption.",
-            render: (sectionContainerEl: HTMLElement) => {
-                new Setting(sectionContainerEl)
-                    .setName("Encrypt synced file contents")
-                    .setDesc(
-                        "Automatically encrypt each synced file's content with AES-256-GCM before upload and decrypt it on download. This applies to the entire synced scope; selective encryption by extension or filename is not currently supported. File and folder names remain visible on the remote so the repository tree stays navigable. This is separate from the per-file Encrypt/Decrypt file-menu actions, which modify local vault files directly."
-                    )
-                    .addToggle((toggle) =>
-                        toggle
-                            .setValue(plugin.settings.apiEncryptionEnabled)
-                            .onChange(async (value) => {
-                                if (value) {
-                                    const passphrase =
-                                        plugin.providerSecrets.getEncryptionPassphrase();
-                                    if (!passphrase) {
-                                        plugin.showNotice(
-                                            "Git Vault: Set an encryption passphrase below before enabling encryption.",
-                                            6000
-                                        );
-                                        toggle.setValue(false);
-                                        return;
-                                    }
-                                    const validationError =
-                                        await validateEncryptionPassphraseForCurrentRepo(
-                                            passphrase,
-                                            { treatAsEnabled: true }
-                                        );
-                                    if (validationError) {
-                                        plugin.showNotice(
-                                            validationError,
-                                            8000
-                                        );
-                                        toggle.setValue(false);
-                                        return;
-                                    }
-                                }
-                                plugin.settings.apiEncryptionEnabled = value;
-                                await persistAndReloadSyncAndRedraw();
-                                void updatePassphraseHint();
-                            })
-                    );
+        ...(supportsEncryption
+            ? [
+                  {
+                      name: "Security",
+                      desc: "Control encryption of API sync contents and the local passphrase used for decryption.",
+                      render: (sectionContainerEl: HTMLElement) => {
+                          new Setting(sectionContainerEl)
+                              .setName("Encrypt synced file contents")
+                              .setDesc(
+                                  "Automatically encrypt each synced file's content with AES-256-GCM before upload and decrypt it on download. This applies to the entire synced scope; selective encryption by extension or filename is not currently supported. File and folder names remain visible on the remote so the repository tree stays navigable. This is separate from the per-file Encrypt/Decrypt file-menu actions, which modify local vault files directly."
+                              )
+                              .addToggle((toggle) =>
+                                  toggle
+                                      .setValue(
+                                          plugin.settings.apiEncryptionEnabled
+                                      )
+                                      .onChange(async (value) => {
+                                          if (value) {
+                                              const passphrase =
+                                                  plugin.providerSecrets.getEncryptionPassphrase();
+                                              if (!passphrase) {
+                                                  plugin.showNotice(
+                                                      "Git Vault: Set an encryption passphrase below before enabling encryption.",
+                                                      6000
+                                                  );
+                                                  toggle.setValue(false);
+                                                  return;
+                                              }
+                                              const validationError =
+                                                  await validateEncryptionPassphraseForCurrentRepo(
+                                                      passphrase,
+                                                      { treatAsEnabled: true }
+                                                  );
+                                              if (validationError) {
+                                                  plugin.showNotice(
+                                                      validationError,
+                                                      8000
+                                                  );
+                                                  toggle.setValue(false);
+                                                  return;
+                                              }
+                                          }
+                                          plugin.settings.apiEncryptionEnabled =
+                                              value;
+                                          await persistAndReloadSyncAndRedraw();
+                                          void updatePassphraseHint();
+                                      })
+                              );
 
-                const _passphraseSetting = new Setting(sectionContainerEl)
-                    .setName("Encryption passphrase")
-                    .setDesc(
-                        "Stored in Obsidian secret storage on this device only. Devices that should decrypt the same remote need the same passphrase. Automatic passphrase rotation for an already-encrypted repo is not supported."
-                    )
-                    .addText((t) => {
-                        passphraseInputEl = t.inputEl;
-                        t.inputEl.type = "password";
-                        t.setValue(
-                            plugin.providerSecrets.getEncryptionPassphrase() ??
-                                ""
-                        );
-                        let passphraseValidationTimer: number | undefined;
-                        let passphraseValidationSequence = 0;
-                        t.onChange((v) => {
-                            const nextPassphrase = v.trim();
-                            const validationSequence =
-                                ++passphraseValidationSequence;
-                            if (passphraseValidationTimer !== undefined) {
-                                window.clearTimeout(passphraseValidationTimer);
-                            }
+                          const _passphraseSetting = new Setting(
+                              sectionContainerEl
+                          )
+                              .setName("Encryption passphrase")
+                              .setDesc(
+                                  "Stored in Obsidian secret storage on this device only. Devices that should decrypt the same remote need the same passphrase. Automatic passphrase rotation for an already-encrypted repo is not supported."
+                              )
+                              .addText((t) => {
+                                  passphraseInputEl = t.inputEl;
+                                  t.inputEl.type = "password";
+                                  t.setValue(
+                                      plugin.providerSecrets.getEncryptionPassphrase() ??
+                                          ""
+                                  );
+                                  let passphraseValidationTimer:
+                                      | number
+                                      | undefined;
+                                  let passphraseValidationSequence = 0;
+                                  t.onChange((v) => {
+                                      const nextPassphrase = v.trim();
+                                      const validationSequence =
+                                          ++passphraseValidationSequence;
+                                      if (
+                                          passphraseValidationTimer !==
+                                          undefined
+                                      ) {
+                                          window.clearTimeout(
+                                              passphraseValidationTimer
+                                          );
+                                      }
 
-                            passphraseValidationTimer = window.setTimeout(
-                                () => {
-                                    void (async () => {
-                                        if (
-                                            validationSequence !==
-                                            passphraseValidationSequence
-                                        ) {
-                                            return;
-                                        }
+                                      passphraseValidationTimer =
+                                          window.setTimeout(() => {
+                                              void (async () => {
+                                                  if (
+                                                      validationSequence !==
+                                                      passphraseValidationSequence
+                                                  ) {
+                                                      return;
+                                                  }
 
-                                        const validationError =
-                                            await validateEncryptionPassphraseForCurrentRepo(
-                                                nextPassphrase
-                                            );
+                                                  const validationError =
+                                                      await validateEncryptionPassphraseForCurrentRepo(
+                                                          nextPassphrase
+                                                      );
 
-                                        if (
-                                            validationSequence !==
-                                            passphraseValidationSequence
-                                        ) {
-                                            return;
-                                        }
+                                                  if (
+                                                      validationSequence !==
+                                                      passphraseValidationSequence
+                                                  ) {
+                                                      return;
+                                                  }
 
-                                        if (validationError) {
-                                            plugin.showNotice(
-                                                validationError,
-                                                8000
-                                            );
-                                            t.setValue(
-                                                plugin.providerSecrets.getEncryptionPassphrase() ??
-                                                    ""
-                                            );
-                                            return;
-                                        }
+                                                  if (validationError) {
+                                                      plugin.showNotice(
+                                                          validationError,
+                                                          8000
+                                                      );
+                                                      t.setValue(
+                                                          plugin.providerSecrets.getEncryptionPassphrase() ??
+                                                              ""
+                                                      );
+                                                      return;
+                                                  }
 
-                                        plugin.providerSecrets.setEncryptionPassphrase(
-                                            nextPassphrase || null
-                                        );
-                                        void updatePassphraseHint();
-                                    })();
-                                },
-                                300
-                            );
-                        });
-                    })
-                    .addExtraButton((button) => {
-                        if (passphraseInputEl) {
-                            wireSecureFieldReveal(button, {
-                                inputEl: passphraseInputEl,
-                            });
-                        }
-                    });
+                                                  plugin.providerSecrets.setEncryptionPassphrase(
+                                                      nextPassphrase || null
+                                                  );
+                                                  void updatePassphraseHint();
+                                              })();
+                                          }, 300);
+                                  });
+                              })
+                              .addExtraButton((button) => {
+                                  if (passphraseInputEl) {
+                                      wireSecureFieldReveal(button, {
+                                          inputEl: passphraseInputEl,
+                                      });
+                                  }
+                              });
 
-                // A subtle hint element shown when provider-level encryption is
-                // enabled but the current passphrase is missing or mismatched.
-                const passphraseHint = sectionContainerEl.createEl("div", {
-                    cls: "git-vault-passphrase-hint",
-                });
+                          // A subtle hint element shown when provider-level encryption is
+                          // enabled but the current passphrase is missing or mismatched.
+                          const passphraseHint = sectionContainerEl.createEl(
+                              "div",
+                              {
+                                  cls: "git-vault-passphrase-hint",
+                              }
+                          );
 
-                async function updatePassphraseHint() {
-                    try {
-                        const current =
-                            plugin.providerSecrets.getEncryptionPassphrase() ??
-                            (passphraseInputEl ? passphraseInputEl.value : "");
-                        const validation =
-                            await validateEncryptionPassphraseForCurrentRepo(
-                                current
-                            );
-                        if (
-                            plugin.settings.apiEncryptionEnabled &&
-                            validation
-                        ) {
-                            const lower = validation.toLowerCase();
-                            if (lower.includes("cannot clear")) {
-                                passphraseHint.textContent =
-                                    "Passphrase required";
-                            } else if (
-                                lower.includes(
-                                    "different encryption passphrase"
-                                ) ||
-                                lower.includes("previously synced") ||
-                                lower.includes("different passphrase")
-                            ) {
-                                passphraseHint.textContent =
-                                    "Passphrase mismatched";
-                            } else {
-                                passphraseHint.textContent = validation;
-                            }
-                            // Visual styles come from the `.git-vault-passphrase-hint`
-                            // CSS class; avoid setting inline styles so hiding the
-                            // element returns it to stylesheet-controlled appearance.
-                        } else {
-                            passphraseHint.textContent = "";
-                        }
-                    } catch (err) {
-                        console.error("failed to update hint:", err);
-                    }
-                }
+                          async function updatePassphraseHint() {
+                              try {
+                                  const current =
+                                      plugin.providerSecrets.getEncryptionPassphrase() ??
+                                      (passphraseInputEl
+                                          ? passphraseInputEl.value
+                                          : "");
+                                  const validation =
+                                      await validateEncryptionPassphraseForCurrentRepo(
+                                          current
+                                      );
+                                  if (
+                                      plugin.settings.apiEncryptionEnabled &&
+                                      validation
+                                  ) {
+                                      const lower = validation.toLowerCase();
+                                      if (lower.includes("cannot clear")) {
+                                          passphraseHint.textContent =
+                                              "Passphrase required";
+                                      } else if (
+                                          lower.includes(
+                                              "different encryption passphrase"
+                                          ) ||
+                                          lower.includes("previously synced") ||
+                                          lower.includes("different passphrase")
+                                      ) {
+                                          passphraseHint.textContent =
+                                              "Passphrase mismatched";
+                                      } else {
+                                          passphraseHint.textContent =
+                                              validation;
+                                      }
+                                      // Visual styles come from the `.git-vault-passphrase-hint`
+                                      // CSS class; avoid setting inline styles so hiding the
+                                      // element returns it to stylesheet-controlled appearance.
+                                  } else {
+                                      passphraseHint.textContent = "";
+                                  }
+                              } catch (err) {
+                                  console.error("failed to update hint:", err);
+                              }
+                          }
 
-                // Initial render
-                void updatePassphraseHint();
-            },
-        },
+                          // Initial render
+                          void updatePassphraseHint();
+                      },
+                  },
+              ]
+            : []),
         {
             name: "Remote actions & recovery",
             desc: "Use the selected remote, import it into this vault, or recover from a deliberate remote reset.",

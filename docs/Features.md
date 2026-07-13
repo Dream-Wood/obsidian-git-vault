@@ -48,7 +48,7 @@ The modal lists commits touching the file from newest to oldest. Select a commit
 
 ## Encryption at Rest in Gitless Mode
 
-Gitless Mode can encrypt synced file contents before upload and decrypt them on download. This protects content stored in GitHub, GitLab, or Gitea. It is separate from HTTPS transport encryption.
+Gitless Mode can encrypt synced file contents before upload and decrypt them on download. This applies to the GitHub/GitLab API backends. Forgejo Git stores normal Git blobs and does not use API payload encryption. It is separate from HTTPS transport encryption.
 
 What is encrypted:
 

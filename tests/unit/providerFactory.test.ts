@@ -34,21 +34,26 @@ describe("buildActiveApiProvider", () => {
     });
 
     it('returns a GitHubApiSyncProvider for "github"', () => {
-        const provider = buildActiveApiProvider(makeStubPlugin({ activeSyncProvider: "github" }));
+        const provider = buildActiveApiProvider(
+            makeStubPlugin({ activeSyncProvider: "github" })
+        );
         expect(provider).not.toBeNull();
         expect(provider?.constructor?.name).toBe("GitHubApiSyncProvider");
     });
 
     it('returns a GitLabApiSyncProvider for "gitlab"', () => {
-        const provider = buildActiveApiProvider(makeStubPlugin({ activeSyncProvider: "gitlab" }));
+        const provider = buildActiveApiProvider(
+            makeStubPlugin({ activeSyncProvider: "gitlab" })
+        );
         expect(provider).not.toBeNull();
         expect(provider?.constructor?.name).toBe("GitLabApiSyncProvider");
     });
 
-    it('returns a GiteaApiSyncProvider for "gitea"', () => {
-        const provider = buildActiveApiProvider(makeStubPlugin({ activeSyncProvider: "gitea" }));
-        expect(provider).not.toBeNull();
-        expect(provider?.constructor?.name).toBe("GiteaApiSyncProvider");
+    it('returns null for Git-backed "gitea"', () => {
+        const provider = buildActiveApiProvider(
+            makeStubPlugin({ activeSyncProvider: "gitea" })
+        );
+        expect(provider).toBeNull();
     });
 });
 
