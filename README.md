@@ -49,7 +49,7 @@ Obsidian Git Vault adds reliable, versioned syncing to your Obsidian vault. On d
 
 ### Hosted sync backends
 
-Use GitHub, GitLab, or Forgejo as a configured sync target. GitHub and GitLab use their repository APIs. Forgejo uses the normal Git smart-HTTP protocol and creates a real local repository on desktop.
+Use GitHub, GitLab, or Forgejo as a configured sync target. GitHub and GitLab use their repository APIs. Forgejo uses the normal Git smart-HTTP protocol and creates a real local repository on desktop. 
 
 ### Mobile and triggers
 
