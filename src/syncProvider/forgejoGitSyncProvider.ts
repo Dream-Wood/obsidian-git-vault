@@ -15,6 +15,7 @@ import {
     type ForgejoGitTransaction,
     type ForgejoGitTransport,
     isForgejoSyncPath,
+    isPackfileCorruptionError,
 } from "./forgejoGitTransport";
 import { isPathInTrackedDirectory, toRemoteScopedPath } from "./pathScope";
 import { getSyncProviderCapabilities } from "./providerRegistry";
@@ -174,6 +175,33 @@ export class ForgejoGitSyncProvider implements SyncProvider {
         }
     }
 
+    private async withMobilePackfileRepair<T>(
+        branch: string,
+        action: () => Promise<T>
+    ): Promise<T> {
+        try {
+            return await action();
+        } catch (error) {
+            if (
+                !isPackfileCorruptionError(error) ||
+                !this.transport.repairCorruptedCache
+            ) {
+                throw error;
+            }
+
+            console.warn(
+                "[Git Vault] Corrupted mobile Forgejo packfile detected; rebuilding the isolated cache and retrying once.",
+                error
+            );
+            this.plugin.showNotice(
+                "Git Vault detected a damaged mobile Git cache. Rebuilding it and retrying sync once.",
+                8000
+            );
+            await this.transport.repairCorruptedCache(branch);
+            return action();
+        }
+    }
+
     private async publish(
         merged: ForgejoSnapshot,
         localBefore: ForgejoSnapshot,
@@ -282,14 +310,18 @@ export class ForgejoGitSyncProvider implements SyncProvider {
         const localBefore = await this.readLocalSnapshot();
 
         // This is intentionally the only network read in a sync transaction.
-        const remoteOid = await this.transport.fetch(branch);
-        const baseOid = await this.transport.readBaseOid();
-        const [unfilteredBase, unfilteredRemote] = await Promise.all([
-            baseOid
-                ? this.transport.readSnapshot(baseOid)
-                : Promise.resolve(null),
-            this.transport.readSnapshot(remoteOid),
-        ]);
+        const { remoteOid, unfilteredBase, unfilteredRemote } =
+            await this.withMobilePackfileRepair(branch, async () => {
+                const remoteOid = await this.transport.fetch(branch);
+                const baseOid = await this.transport.readBaseOid();
+                const [unfilteredBase, unfilteredRemote] = await Promise.all([
+                    baseOid
+                        ? this.transport.readSnapshot(baseOid)
+                        : Promise.resolve(null),
+                    this.transport.readSnapshot(remoteOid),
+                ]);
+                return { remoteOid, unfilteredBase, unfilteredRemote };
+            });
         const base = unfilteredBase
             ? this.filterRemoteSnapshot(unfilteredBase)
             : null;
@@ -450,9 +482,15 @@ export class ForgejoGitSyncProvider implements SyncProvider {
     async checkoutBranchSnapshot(): Promise<number> {
         if (!this.initialized) await this.init();
         const localBefore = await this.readLocalSnapshot();
-        const remoteOid = await this.transport.fetch(this.branch);
-        const remote = this.filterRemoteSnapshot(
-            await this.transport.readSnapshot(remoteOid)
+        const { remoteOid, remote } = await this.withMobilePackfileRepair(
+            this.branch,
+            async () => {
+                const remoteOid = await this.transport.fetch(this.branch);
+                const remote = this.filterRemoteSnapshot(
+                    await this.transport.readSnapshot(remoteOid)
+                );
+                return { remoteOid, remote };
+            }
         );
         return this.publish(
             remote,

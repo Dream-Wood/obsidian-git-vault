@@ -5,6 +5,7 @@ import {
 } from "../../src/syncProvider/forgejoThreeWayMerge";
 import {
     buildForgejoRemoteUrl,
+    isPackfileCorruptionError,
     isForgejoSyncPath,
 } from "../../src/syncProvider/forgejoGitTransport";
 
@@ -82,5 +83,18 @@ describe("Forgejo Git target safety", () => {
         expect(isForgejoSyncPath(".obsidian/workspace.json")).toBe(false);
         expect(isForgejoSyncPath(".git/index")).toBe(false);
         expect(isForgejoSyncPath(".cocoindex_code/db")).toBe(false);
+    });
+
+    it("recognizes mobile packfile corruption that requires cache rebuild", () => {
+        expect(
+            isPackfileCorruptionError(
+                new Error(
+                    "Packfile payload corrupted: calculated abc but expected def."
+                )
+            )
+        ).toBe(true);
+        expect(
+            isPackfileCorruptionError(new Error("Authentication failed"))
+        ).toBe(false);
     });
 });

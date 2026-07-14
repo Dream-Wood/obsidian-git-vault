@@ -90,6 +90,7 @@ function fakePlugin(initial = "local\n") {
         state: { offlineMode: false },
         localStorage: { getHostname: () => "test-device" },
         saveSettings: vi.fn(async () => undefined),
+        showNotice: vi.fn(),
     };
     return {
         plugin: plugin as unknown as ObsidianGit,
@@ -138,5 +139,34 @@ describe("ForgejoGitSyncProvider transaction", () => {
         expect(adapter.writeBinary).not.toHaveBeenCalled();
         expect(calls.commit).not.toHaveBeenCalled();
         expect(calls.push).not.toHaveBeenCalled();
+    });
+
+    it("rebuilds the isolated mobile cache and retries the full remote read once", async () => {
+        const { plugin } = fakePlugin("local\n");
+        const { transport, calls } = fakeTransport(
+            new Map([["note.md", encode("local\n")]])
+        );
+        const repairCorruptedCache = vi.fn(async () => undefined);
+        transport.repairCorruptedCache = repairCorruptedCache;
+        const readSnapshot = vi
+            .fn<(ref: string | null) => Promise<ForgejoSnapshot>>()
+            .mockRejectedValueOnce(
+                new Error(
+                    "Packfile payload corrupted: calculated abc but expected def."
+                )
+            )
+            .mockImplementation(async (ref) =>
+                ref === "remote-oid"
+                    ? new Map([["note.md", encode("local\n")]])
+                    : new Map()
+            );
+        transport.readSnapshot = readSnapshot;
+        const provider = new ForgejoGitSyncProvider(plugin, transport);
+
+        const result = await provider.sync();
+
+        expect(result.success).toBe(true);
+        expect(repairCorruptedCache).toHaveBeenCalledOnce();
+        expect(calls.fetch).toHaveBeenCalledTimes(2);
     });
 });

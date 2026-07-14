@@ -32,6 +32,7 @@ export interface ForgejoGitTransport {
     push(branch: string): Promise<void>;
     updateBase(oid: string): Promise<void>;
     rollback(transaction: ForgejoGitTransaction, branch: string): Promise<void>;
+    repairCorruptedCache?(branch: string): Promise<void>;
 }
 
 function normalizeGitPath(value: string): string {
@@ -52,6 +53,13 @@ function isReservedPath(value: string): boolean {
 
 export function isForgejoSyncPath(value: string): boolean {
     return !isReservedPath(value);
+}
+
+export function isPackfileCorruptionError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return /Packfile (?:payload corrupted|trailer mismatch)|Could not read packfile/i.test(
+        message
+    );
 }
 
 export function buildForgejoRemoteUrl(
@@ -310,6 +318,7 @@ class IsomorphicForgejoGitTransport implements ForgejoGitTransport {
     readonly kind = "isomorphic" as const;
     private readonly manager: IsomorphicGit;
     private readonly mobileDir: string;
+    private remoteUrl = "";
 
     constructor(private readonly plugin: ObsidianGit) {
         this.manager = plugin.gitManager as IsomorphicGit;
@@ -350,6 +359,7 @@ class IsomorphicForgejoGitTransport implements ForgejoGitTransport {
     }
 
     async init(remoteUrl: string, branch: string): Promise<void> {
+        this.remoteUrl = remoteUrl;
         await this.ensureDirectory(this.mobileDir);
         if (
             !(await this.plugin.app.vault.adapter.exists(
@@ -398,6 +408,21 @@ class IsomorphicForgejoGitTransport implements ForgejoGitTransport {
             return null;
         }
         return this.resolve(`refs/remotes/origin/${branch}`);
+    }
+
+    async repairCorruptedCache(branch: string): Promise<void> {
+        if (!this.remoteUrl) {
+            throw new Error(
+                "Cannot rebuild the mobile Forgejo cache before transport initialization."
+            );
+        }
+
+        this.manager.clearFsCache();
+        const adapter = this.plugin.app.vault.adapter;
+        if (await adapter.exists(this.mobileDir)) {
+            await adapter.rmdir(this.mobileDir, true);
+        }
+        await this.init(this.remoteUrl, branch);
     }
 
     readBaseOid(): Promise<string | null> {

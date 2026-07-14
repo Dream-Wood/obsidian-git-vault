@@ -59,6 +59,10 @@ export class IsomorphicGit extends GitManager {
         super(plugin);
     }
 
+    clearFsCache(): void {
+        this.fs.clearIndex();
+    }
+
     getRepo(): {
         fs: MyAdapter;
         dir: string;

@@ -103,7 +103,9 @@ This was caused by a desktop-only pending-vault hand-off reaching Node's `path.r
 
 ### `Packfile payload corrupted`
 
-This can be a false SHA-1 mismatch caused by Web Crypto handling a non-zero-offset typed-array view incorrectly. The bundled isomorphic-git build is patched to copy the packfile range before hashing it. Update all three manual-install files from the same release, fully restart Obsidian, and retry sync.
+This can be a false SHA-1 mismatch caused by Web Crypto or by a mobile storage adapter receiving a non-zero-offset typed-array view. The bundled isomorphic-git build copies ranges before hashing, and the filesystem adapter now copies exact visible bytes into an owned `ArrayBuffer` before writing. Update all three manual-install files from the same release and fully restart Obsidian.
+
+When a corrupted pack from an older build is detected, Git Vault automatically rebuilds only its isolated `.git-vault-mobile` checkout and retries once.
 
 If an older build already left an unusable isolated mobile checkout, close Obsidian and remove only `.obsidian/.git-vault-mobile/`. Do not remove notes or the vault's normal `.git` directory. The plugin recreates this internal checkout on the next sync; same-path differences may be shown once for review because the cached common base was removed.
 

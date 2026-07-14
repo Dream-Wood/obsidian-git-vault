@@ -7,6 +7,23 @@ import type { DataAdapter, Vault } from "obsidian";
 import { normalizePath, TFile } from "obsidian";
 import type ObsidianGit from "../main";
 
+type BinaryData = ArrayBuffer | ArrayBufferView;
+
+/**
+ * Obsidian's DataAdapter requires an ArrayBuffer containing exactly the bytes
+ * to write. isomorphic-git frequently passes Uint8Array views whose backing
+ * buffer is larger and whose byteOffset is non-zero. Passing those views
+ * through directly can corrupt binary packfiles on mobile adapters.
+ */
+export function toOwnedArrayBuffer(data: BinaryData): ArrayBuffer {
+    if (data instanceof ArrayBuffer) {
+        return data.slice(0);
+    }
+
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength).slice()
+        .buffer;
+}
+
 export class MyAdapter {
     promises: any = {};
     adapter: DataAdapter;
@@ -35,9 +52,9 @@ export class MyAdapter {
         this.promises.readlink = this.readlink.bind(this);
         this.promises.symlink = this.symlink.bind(this);
     }
-    async readFile(path: string, opts: any) {
+    async readFile(path: string, opts?: any) {
         this.maybeLog("Read: " + path + JSON.stringify(opts));
-        if (opts == "utf8" || opts.encoding == "utf8") {
+        if (opts == "utf8" || opts?.encoding == "utf8") {
             const file = this.vault.getAbstractFileByPath(path);
             if (file instanceof TFile) {
                 this.maybeLog("Reuse");
@@ -65,7 +82,7 @@ export class MyAdapter {
             }
         }
     }
-    async writeFile(path: string, data: string | ArrayBuffer) {
+    async writeFile(path: string, data: string | BinaryData) {
         this.maybeLog("Write: " + path);
 
         if (typeof data === "string") {
@@ -76,16 +93,17 @@ export class MyAdapter {
                 return this.adapter.write(path, data);
             }
         } else {
+            const ownedData = toOwnedArrayBuffer(data);
             if (path.endsWith(this.gitDir + "/index")) {
-                this.index = data;
+                this.index = ownedData;
                 this.indexmtime = Date.now();
                 // this.adapter.writeBinary(path, data);
             } else {
                 const file = this.vault.getAbstractFileByPath(path);
                 if (file instanceof TFile) {
-                    return this.vault.modifyBinary(file, data);
+                    return this.vault.modifyBinary(file, ownedData);
                 } else {
-                    return this.adapter.writeBinary(path, data);
+                    return this.adapter.writeBinary(path, ownedData);
                 }
             }
         }
