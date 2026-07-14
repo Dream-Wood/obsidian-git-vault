@@ -62,6 +62,39 @@ export function isPackfileCorruptionError(error: unknown): boolean {
     );
 }
 
+export function buildForgejoCommitAuthor({
+    repositoryName,
+    repositoryEmail,
+    configuredName,
+    configuredEmail,
+    owner,
+    hostname,
+}: {
+    repositoryName?: string | null;
+    repositoryEmail?: string | null;
+    configuredName?: string | null;
+    configuredEmail?: string | null;
+    owner?: string | null;
+    hostname?: string | null;
+}): { name: string; email: string } {
+    const firstValue = (...values: Array<string | null | undefined>) =>
+        values.map((value) => value?.trim()).find(Boolean);
+    const name =
+        firstValue(repositoryName, configuredName, owner, hostname) ??
+        "Git Vault";
+    const explicitEmail = firstValue(repositoryEmail, configuredEmail);
+    if (explicitEmail) {
+        return { name, email: explicitEmail };
+    }
+
+    const localPart =
+        firstValue(owner, hostname)
+            ?.toLowerCase()
+            .replace(/[^a-z0-9._-]+/g, "-")
+            .replace(/^-+|-+$/g, "") || "git-vault";
+    return { name, email: `${localPart}@git-vault.local` };
+}
+
 export function buildForgejoRemoteUrl(
     baseUrl: string,
     owner: string,
@@ -511,8 +544,51 @@ class IsomorphicForgejoGitTransport implements ForgejoGitTransport {
         }
     }
 
+    private async getCommitAuthor(): Promise<{
+        name: string;
+        email: string;
+    }> {
+        const readRepositoryConfig = async (
+            path: "user.name" | "user.email"
+        ): Promise<string | undefined> => {
+            const value: unknown = await git
+                .getConfig({ ...this.repo(), path })
+                .catch(() => undefined);
+            return typeof value === "string" ? value : undefined;
+        };
+        const readConfiguredAuthor = async (
+            path: "user.name" | "user.email"
+        ): Promise<string | undefined> => {
+            const value: unknown = await this.manager
+                .getConfig(path)
+                .catch(() => undefined);
+            return typeof value === "string" ? value : undefined;
+        };
+        const [
+            repositoryName,
+            repositoryEmail,
+            configuredName,
+            configuredEmail,
+        ] = await Promise.all([
+            readRepositoryConfig("user.name"),
+            readRepositoryConfig("user.email"),
+            readConfiguredAuthor("user.name"),
+            readConfiguredAuthor("user.email"),
+        ]);
+
+        return buildForgejoCommitAuthor({
+            repositoryName,
+            repositoryEmail,
+            configuredName,
+            configuredEmail,
+            owner: this.plugin.settings.giteaOwner,
+            hostname: this.plugin.localStorage.getHostname(),
+        });
+    }
+
     async commit(message: string): Promise<string> {
-        const oid = await git.commit({ ...this.repo(), message });
+        const author = await this.getCommitAuthor();
+        const oid = await git.commit({ ...this.repo(), message, author });
         return oid;
     }
 

@@ -4,6 +4,7 @@ import {
     type ForgejoSnapshot,
 } from "../../src/syncProvider/forgejoThreeWayMerge";
 import {
+    buildForgejoCommitAuthor,
     buildForgejoRemoteUrl,
     isPackfileCorruptionError,
     isForgejoSyncPath,
@@ -96,5 +97,27 @@ describe("Forgejo Git target safety", () => {
         expect(
             isPackfileCorruptionError(new Error("Authentication failed"))
         ).toBe(false);
+    });
+
+    it("always provides a stable mobile commit author", () => {
+        expect(
+            buildForgejoCommitAuthor({
+                configuredName: "Vault Author",
+                configuredEmail: "author@example.com",
+                owner: "forgejo-owner",
+            })
+        ).toEqual({
+            name: "Vault Author",
+            email: "author@example.com",
+        });
+        expect(
+            buildForgejoCommitAuthor({
+                owner: "Forgejo Team",
+                hostname: "Android Phone",
+            })
+        ).toEqual({
+            name: "Forgejo Team",
+            email: "forgejo-team@git-vault.local",
+        });
     });
 });
