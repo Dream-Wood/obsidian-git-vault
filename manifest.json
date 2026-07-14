@@ -6,5 +6,5 @@
     "minAppVersion": "1.11.4",
     "description": "Atomic vault sync with native Git on desktop, mobile isomorphic-git, smart triggers, and visual three-way conflict resolution.",
     "isDesktopOnly": false,
-    "version": "1.0"
+    "version": "2.0.2"
 }

@@ -1,0 +1,29 @@
+diff --git a/index.js b/index.js
+index eb614adef8cb8bc434e2286fcbcd35fba8c2efa3..fba038d90943762889af3081dbefaead4bafe39d 100644
+--- a/index.js
++++ b/index.js
+@@ -637,7 +637,12 @@ async function testSubtleSHA1() {
+   // some browsers that have crypto.subtle.digest don't actually implement SHA-1.
+   try {
+     const hash = await subtleSHA1(new Uint8Array([]));
+-    return hash === 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
++    const offsetView = new Uint8Array([0, 97, 98, 99]).subarray(1);
++    const offsetHash = await subtleSHA1(offsetView);
++    return (
++      hash === 'da39a3ee5e6b4b0d3255bfef95601890afd80709' &&
++      offsetHash === 'a9993e364706816aba3e25717850c26c9cd0d89d'
++    )
+   } catch (_) {
+     // no bother
+   }
+@@ -3366,7 +3371,9 @@ async function shasumRange(
+   buffer,
+   { start = 0, end = buffer.length } = {}
+ ) {
+-  return shasum(buffer.subarray(start, end))
++  // Web Crypto in some mobile WebViews hashes non-zero-offset typed-array
++  // views incorrectly. Copy the requested range before validating a packfile.
++  return shasum(buffer.slice(start, end))
+ }
+ 
+ async function readObjectPacked({

@@ -97,6 +97,16 @@ Double-check the server URL, owner, repository, and branch. They are case-sensit
 
 The first fetch and snapshot comparison must inspect the repository once. Subsequent Forgejo syncs still use one fetch but push only when the merged content differs from remote.
 
+### `Je.resolve is not a function`
+
+This was caused by a desktop-only pending-vault hand-off reaching Node's `path.resolve` on mobile. Update to a release containing the Android compatibility fixes in the current `Unreleased` changelog section.
+
+### `Packfile payload corrupted`
+
+This can be a false SHA-1 mismatch caused by Web Crypto handling a non-zero-offset typed-array view incorrectly. The bundled isomorphic-git build is patched to copy the packfile range before hashing it. Update all three manual-install files from the same release, fully restart Obsidian, and retry sync.
+
+If an older build already left an unusable isolated mobile checkout, close Obsidian and remove only `.obsidian/.git-vault-mobile/`. Do not remove notes or the vault's normal `.git` directory. The plugin recreates this internal checkout on the next sync; same-path differences may be shown once for review because the cached common base was removed.
+
 ### App crashes or runs out of memory
 
 If your vault is extremely large (> 10,000 files), use **Tracked directory** and **Excluded paths** to reduce the snapshot. Forgejo's mobile repository is isolated under `.obsidian/.git-vault-mobile`.

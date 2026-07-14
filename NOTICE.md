@@ -15,6 +15,8 @@ the copyright holder for original modifications made in this fork.
 - Replaced the Gitea/Forgejo per-file REST sync data path with Git smart HTTP.
 - Added mandatory system-Git detection and native Git transport on desktop.
 - Added an isolated isomorphic-git worktree for Forgejo sync on mobile.
+- Added a mobile Web Crypto compatibility patch for isomorphic-git packfile
+  SHA-1 validation; the dependency remains under its upstream MIT license.
 - Added a one-fetch, true three-way merge transaction with at most one local
   content commit and one push.
 - Added atomic conflict handling and rollback of vault files, refs, and the

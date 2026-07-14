@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     getPausedAutomaticsResumeDelay,
     requiresLocalGitRepo,
+    shouldConsumePendingVaultSyncRequest,
     shouldPollConfigDirectory,
     shouldUseNativeGit,
 } from "../../src/startup";
@@ -31,6 +32,21 @@ describe("shouldUseNativeGit", () => {
         expect(shouldUseNativeGit("gitlab", true)).toBe(false);
         expect(shouldUseNativeGit("gitea", true)).toBe(true);
         expect(shouldUseNativeGit("git", false)).toBe(false);
+    });
+});
+
+describe("shouldConsumePendingVaultSyncRequest", () => {
+    it("never resolves desktop hand-off paths on mobile", () => {
+        expect(
+            shouldConsumePendingVaultSyncRequest(
+                false,
+                "/storage/emulated/0/vault"
+            )
+        ).toBe(false);
+        expect(shouldConsumePendingVaultSyncRequest(true, null)).toBe(false);
+        expect(
+            shouldConsumePendingVaultSyncRequest(true, "C:/Vault")
+        ).toBe(true);
     });
 });
 

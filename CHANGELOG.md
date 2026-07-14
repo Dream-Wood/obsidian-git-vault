@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## Unreleased
 
+### Android compatibility
+
+- Stopped the desktop pending-vault hand-off from calling Node's `path.resolve` during mobile startup (`Je.resolve is not a function`).
+- Pinned and patched the browser build of isomorphic-git so packfile SHA-1 validation copies typed-array ranges before hashing them. This avoids false `Packfile payload corrupted` failures in affected Android/iOS WebViews.
+- Added a non-zero-offset Web Crypto capability check and made the pnpm build-script allowlist reproducible on clean installs.
+
 ### Forgejo sync rewrite
 
 - Replaced the per-file Gitea/Forgejo REST sync data path with Git smart HTTP: mandatory system Git on desktop and an isolated isomorphic-git worktree on mobile.

@@ -18,6 +18,7 @@
 /*.tsbuildinfo
 /.eslintcache
 /.sass-cache/
+/.cocoindex_code/
 
 # Local runtime or scratch data
 /data.json

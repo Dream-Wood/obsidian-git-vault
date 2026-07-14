@@ -67,6 +67,7 @@ import {
 import {
     getPausedAutomaticsResumeDelay,
     requiresLocalGitRepo,
+    shouldConsumePendingVaultSyncRequest,
 } from "./startup";
 import { HunkActions } from "./editor/signs/hunkActions";
 import { EditorIntegration } from "./editor/editorIntegration";
@@ -869,7 +870,12 @@ export default class ObsidianGit extends Plugin {
                 : typeof adapter.basePath === "string"
                   ? adapter.basePath
                   : null;
-        if (!basePath) {
+        if (
+            !shouldConsumePendingVaultSyncRequest(
+                Platform.isDesktopApp,
+                basePath
+            )
+        ) {
             return;
         }
 

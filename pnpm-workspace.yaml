@@ -1,4 +1,5 @@
 allowBuilds:
-  esbuild: set this to true or false
-  svelte-preprocess: set this to true or false
-onlyBuiltDependencies: '[esbuild, svelte-preprocess]'
+  esbuild: true
+  svelte-preprocess: true
+patchedDependencies:
+  isomorphic-git@1.38.4: patches/isomorphic-git@1.38.4.patch
